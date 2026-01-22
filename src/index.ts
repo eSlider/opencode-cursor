@@ -63,7 +63,6 @@ export const cursorACP: Plugin = async ({ client }) => {
 
       // Spawn cursor-agent with prompt via stdin
       const args = [
-        "cursor-agent",
         "--print",
         "--output-format",
         stream ? "json-stream" : "json",
