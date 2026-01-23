@@ -6,3 +6,9 @@ bun.lock
 installer
 opencode-cursor-installer
 opencode-cursor-*.log
+
+# Development documentation
+BUG_ANALYSIS.md
+DEBUG_SEGFAULT.md
+UNINSTALL.md
+UNINSTALL_STEPS.md

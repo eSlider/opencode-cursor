@@ -2,12 +2,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -22,7 +24,7 @@ func (m model) startInstallation() (tea.Model, tea.Cmd) {
 		{name: "Create symlink", description: "Linking to OpenCode plugin directory", execute: createSymlink, status: statusPending},
 		{name: "Update config", description: "Adding cursor-acp provider to opencode.json", execute: updateConfig, status: statusPending},
 		{name: "Validate config", description: "Checking JSON syntax", execute: validateConfig, status: statusPending},
-		{name: "Verify plugin", description: "Testing plugin loads correctly", execute: verifyPlugin, optional: true, status: statusPending},
+		{name: "Verify plugin loads", description: "Checking if plugin appears in opencode", execute: verifyPostInstall, optional: true, status: statusPending},
 	}
 
 	m.currentTaskIndex = 0
@@ -239,6 +241,26 @@ func verifyPlugin(m *model) error {
 	}
 
 	return nil
+}
+
+func verifyPostInstall(m *model) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "opencode", "models", "--provider")
+	output, err := cmd.CombinedOutput()
+
+	cancel()
+
+	if err != nil {
+		return fmt.Errorf("failed to run opencode models: %w", err)
+	}
+
+	if strings.Contains(string(output), "cursor-acp") {
+		return nil
+	}
+
+	return fmt.Errorf("cursor-acp provider not found - plugin may not be installed correctly")
 }
 
 // Uninstall functions
