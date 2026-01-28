@@ -5,8 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --external \"@agentclientprotocol/sdk\"",
-    "dev": "bun build ./src/index.ts --outdir ./dist --target node --external \"@agentclientprotocol/sdk\" --watch",
+    "build": "bun build ./src/index.ts --outdir ./dist --target node",
+    "dev": "bun build ./src/index.ts --outdir ./dist --target node --watch",
     "test": "bun test",
     "test:unit": "bun test tests/unit",
     "test:integration": "bun test tests/integration",
@@ -19,17 +19,14 @@
     "dist"
   ],
   "devDependencies": {
-    "@ai-sdk/openai-compatible": "^2.0.21",
     "@opencode-ai/sdk": "latest",
     "@types/node": "^22.0.0",
     "ai": "^6.0.55",
     "typescript": "^5.8.0"
   },
   "peerDependencies": {
+    "@opencode-ai/sdk": "^1.0.0",
     "bun-types": "latest"
   },
-  "license": "ISC",
-  "dependencies": {
-    "opencode-cursor": "^0.0.1"
-  }
+  "license": "ISC"
 }
