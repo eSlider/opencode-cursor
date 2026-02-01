@@ -34,18 +34,21 @@ func (m model) View() string {
 		content.WriteString(beamsOutput)
 		content.WriteString("\n")
 	} else {
-		headerLines := strings.Split(asciiHeader, "\n")
-		for _, line := range headerLines {
-			centered := lipgloss.NewStyle().
-				Width(m.width).
-				Align(lipgloss.Center).
-				Foreground(Primary).
-				Background(BgBase).
-				Bold(true).
-				Render(line)
-			content.WriteString(centered)
-			content.WriteString("\n")
-		}
+		// Render entire ASCII block at once to preserve character alignment
+		// (per-line Render() mangles widths with Unicode block characters)
+		asciiStyle := lipgloss.NewStyle().
+			Foreground(Primary).
+			Background(BgBase).
+			Bold(true)
+		styledAscii := asciiStyle.Render(asciiHeader)
+
+		// Center the entire block
+		centeredAscii := lipgloss.NewStyle().
+			Width(m.width).
+			Align(lipgloss.Center).
+			Render(styledAscii)
+		content.WriteString(centeredAscii)
+		content.WriteString("\n")
 	}
 	content.WriteString("\n")
 
