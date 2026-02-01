@@ -1,49 +1,79 @@
-export type LogLevel = 'none' | 'error' | 'warn' | 'info' | 'debug';
+// src/utils/logger.ts
 
-export interface Logger {
-  debug: (message: string, meta?: unknown) => void;
-  info: (message: string, meta?: unknown) => void;
-  warn: (message: string, meta?: unknown) => void;
-  error: (message: string, error?: unknown) => void;
+type LogLevel = "debug" | "info" | "warn" | "error";
+
+const LEVEL_PRIORITY: Record<LogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+};
+
+function getConfiguredLevel(): LogLevel {
+  const env = process.env.CURSOR_ACP_LOG_LEVEL?.toLowerCase();
+  if (env && env in LEVEL_PRIORITY) {
+    return env as LogLevel;
+  }
+  return "info";
 }
 
-const LOG_LEVELS: Record<LogLevel, number> = {
-  'none': 0,
-  'error': 1,
-  'warn': 2,
-  'info': 3,
-  'debug': 4
-};
+function isSilent(): boolean {
+  return process.env.CURSOR_ACP_LOG_SILENT === "1" ||
+         process.env.CURSOR_ACP_LOG_SILENT === "true";
+}
 
-const CONSOLE_METHODS: Record<string, 'error' | 'warn' | 'info' | 'debug' | 'log'> = {
-  'error': 'error',
-  'warn': 'warn',
-  'info': 'info',
-  'debug': 'debug',
-  'none': 'log'
-};
+function shouldLog(level: LogLevel): boolean {
+  if (isSilent()) return false;
+  const configured = getConfiguredLevel();
+  return LEVEL_PRIORITY[level] >= LEVEL_PRIORITY[configured];
+}
 
-export function logger(module: string, level: LogLevel = 'info'): Logger {
-  const currentLevel = LOG_LEVELS[level];
+function formatMessage(level: LogLevel, component: string, message: string, data?: unknown): string {
+  const timestamp = new Date().toISOString();
+  const prefix = `[cursor-acp:${component}]`;
+  const levelTag = level.toUpperCase().padEnd(5);
 
-  const log = (prefix: string, message: string, meta?: unknown) => {
-    const formatted = JSON.stringify({ module, message, ...(meta ? { meta } : {}) });
-    const consoleMethod = CONSOLE_METHODS[prefix] || 'log';
-    console[consoleMethod](`[cursor:${module}] ${prefix.toUpperCase()} ${formatted}`);
-  };
+  let formatted = `${prefix} ${levelTag} ${message}`;
 
-  return {
-    debug: (message: string, meta?: unknown) => {
-      if (currentLevel >= LOG_LEVELS.debug) log('debug', message, meta);
-    },
-    info: (message: string, meta?: unknown) => {
-      if (currentLevel >= LOG_LEVELS.info) log('info', message, meta);
-    },
-    warn: (message: string, meta?: unknown) => {
-      if (currentLevel >= LOG_LEVELS.warn) log('warn', message, meta);
-    },
-    error: (message: string, error?: unknown) => {
-      if (currentLevel >= LOG_LEVELS.error) log('error', message, error || undefined);
+  if (data !== undefined) {
+    if (typeof data === "object") {
+      formatted += ` ${JSON.stringify(data)}`;
+    } else {
+      formatted += ` ${data}`;
     }
+  }
+
+  return formatted;
+}
+
+export interface Logger {
+  debug: (message: string, data?: unknown) => void;
+  info: (message: string, data?: unknown) => void;
+  warn: (message: string, data?: unknown) => void;
+  error: (message: string, data?: unknown) => void;
+}
+
+export function createLogger(component: string): Logger {
+  return {
+    debug: (message: string, data?: unknown) => {
+      if (shouldLog("debug")) {
+        console.error(formatMessage("debug", component, message, data));
+      }
+    },
+    info: (message: string, data?: unknown) => {
+      if (shouldLog("info")) {
+        console.error(formatMessage("info", component, message, data));
+      }
+    },
+    warn: (message: string, data?: unknown) => {
+      if (shouldLog("warn")) {
+        console.error(formatMessage("warn", component, message, data));
+      }
+    },
+    error: (message: string, data?: unknown) => {
+      if (shouldLog("error")) {
+        console.error(formatMessage("error", component, message, data));
+      }
+    },
   };
 }

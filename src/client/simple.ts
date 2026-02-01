@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { logger } from '../utils/logger.js';
+import { createLogger } from '../utils/logger.js';
 
 export interface CursorClientConfig {
   timeout?: number;
@@ -16,7 +16,7 @@ export interface CursorResponse {
 
 export class SimpleCursorClient {
   private config: Required<CursorClientConfig>;
-  private log: ReturnType<typeof logger>;
+  private log: ReturnType<typeof createLogger>;
 
   constructor(config: CursorClientConfig = {}) {
     this.config = {
@@ -26,8 +26,8 @@ export class SimpleCursorClient {
       cursorAgentPath: process.env.CURSOR_AGENT_EXECUTABLE || 'cursor-agent',
       ...config
     };
-    
-    this.log = logger('cursor-client', 'info');
+
+    this.log = createLogger('cursor-client');
   }
 
   async *executePromptStream(prompt: string, options: {
