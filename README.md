@@ -30,15 +30,43 @@ Then add to `~/.config/opencode/opencode.json`:
 
 ```json
 {
-  "plugin": ["opencode-cursor"],
+  "plugin": ["cursor-acp"],
   "provider": {
     "cursor-acp": {
       "name": "Cursor",
       "npm": "@ai-sdk/openai-compatible",
-      "options": { "baseURL": "http://127.0.0.1:32124/v1" }
+      "options": { "baseURL": "http://127.0.0.1:32124/v1" },
+      "models": {
+        "auto": { "name": "Cursor Auto" },
+        "claude-sonnet-4": { "name": "Claude Sonnet 4" },
+        "gpt-4o": { "name": "GPT-4o" }
+      }
     }
   }
 }
+```
+
+## Authentication
+
+Before using cursor-acp, you need to authenticate with Cursor:
+
+```bash
+# Run the interactive auth command
+opencode auth login
+
+# In the provider selector:
+# 1. Type "other" to search
+# 2. Select "Other" from the list
+# 3. Enter "cursor-acp" as the provider ID
+# 4. A Cursor login URL will be displayed - open it in your browser
+# 5. Complete authentication in browser
+```
+
+**Note:** Do NOT run `opencode auth login cursor-acp` - OpenCode interprets arguments as URLs, not provider IDs.
+
+Alternatively, authenticate directly with cursor-agent:
+```bash
+cursor-agent login
 ```
 
 ## Usage
