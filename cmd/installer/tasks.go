@@ -8,11 +8,48 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+// fetchCursorModels calls cursor-agent --list-models and parses the output
+func fetchCursorModels() (map[string]interface{}, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "cursor-agent", "--list-models")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("cursor-agent --list-models failed: %w", err)
+	}
+
+	// Strip ANSI escape codes
+	ansiRegex := regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+	clean := ansiRegex.ReplaceAllString(string(output), "")
+
+	// Parse lines: "model-id - Display Name [(current)] [(default)]"
+	lineRegex := regexp.MustCompile(`^([a-z0-9.-]+)\s+-\s+(.+?)(?:\s+\((current|default)\))*\s*$`)
+	models := make(map[string]interface{})
+
+	for _, line := range strings.Split(clean, "\n") {
+		line = strings.TrimSpace(line)
+		matches := lineRegex.FindStringSubmatch(line)
+		if len(matches) >= 3 {
+			id := matches[1]
+			name := strings.TrimSpace(matches[2])
+			models[id] = map[string]interface{}{"name": name}
+		}
+	}
+
+	if len(models) == 0 {
+		return nil, fmt.Errorf("no models found in cursor-agent output")
+	}
+
+	return models, nil
+}
 
 func (m model) startInstallation() (tea.Model, tea.Cmd) {
 	m.step = stepInstalling
@@ -179,36 +216,10 @@ func updateConfig(m *model) error {
 		config["provider"] = providers
 	}
 
-	// Add cursor-acp provider
-	models := map[string]interface{}{
-		"auto":                    map[string]interface{}{"name": "Cursor Agent Auto"},
-		"composer-1":              map[string]interface{}{"name": "Cursor Agent Composer 1"},
-		"deepseek-v3.2":           map[string]interface{}{"name": "Cursor Agent DeepSeek V3.2"},
-		"gemini-3-flash":          map[string]interface{}{"name": "Cursor Agent Gemini 3 Flash"},
-		"gemini-3-pro":            map[string]interface{}{"name": "Cursor Agent Gemini 3 Pro"},
-		"gemini-3-pro-preview":    map[string]interface{}{"name": "Cursor Agent Gemini 3 Pro Preview"},
-		"gpt-5":                   map[string]interface{}{"name": "Cursor Agent GPT-5 (alias → gpt-5.2)"},
-		"gpt-5-mini":              map[string]interface{}{"name": "Cursor Agent GPT-5 Mini"},
-		"gpt-5-pro":               map[string]interface{}{"name": "Cursor Agent GPT-5 Pro"},
-		"gpt-5.1":                 map[string]interface{}{"name": "Cursor Agent GPT-5.1"},
-		"gpt-5.1-codex":           map[string]interface{}{"name": "Cursor Agent GPT-5.1 Codex"},
-		"gpt-5.1-codex-max-xhigh": map[string]interface{}{"name": "Cursor Agent GPT-5.1 Codex Max XHigh"},
-		"gpt-5.1-codex-mini-high": map[string]interface{}{"name": "Cursor Agent GPT-5.1 Codex Mini High"},
-		"gpt-5.1-high":            map[string]interface{}{"name": "Cursor Agent GPT-5.1 High"},
-		"gpt-5.2":                 map[string]interface{}{"name": "Cursor Agent GPT-5.2"},
-		"gpt-5.2-codex":           map[string]interface{}{"name": "Cursor Agent GPT-5.2 Codex"},
-		"gpt-5.2-high":            map[string]interface{}{"name": "Cursor Agent GPT-5.2 High"},
-		"gpt-5.2-xhigh":           map[string]interface{}{"name": "Cursor Agent GPT-5.2 XHigh"},
-		"grok-4":                  map[string]interface{}{"name": "Cursor Agent Grok 4"},
-		"grok-4-fast":             map[string]interface{}{"name": "Cursor Agent Grok 4 Fast"},
-		"grok-code":               map[string]interface{}{"name": "Cursor Agent Grok Code"},
-		"grok-code-fast":          map[string]interface{}{"name": "Cursor Agent Grok Code Fast"},
-		"haiku-4.5":               map[string]interface{}{"name": "Cursor Agent Claude 4.5 Haiku"},
-		"kimi-k2":                 map[string]interface{}{"name": "Cursor Agent Kimi K2"},
-		"opus-4.5":                map[string]interface{}{"name": "Cursor Agent Claude 4.5 Opus"},
-		"opus-4.5-thinking":       map[string]interface{}{"name": "Cursor Agent Claude 4.5 Opus Thinking"},
-		"sonnet-4.5":              map[string]interface{}{"name": "Cursor Agent Claude 4.5 Sonnet"},
-		"sonnet-4.5-thinking":     map[string]interface{}{"name": "Cursor Agent Claude 4.5 Sonnet Thinking"},
+	// Fetch models dynamically from cursor-agent
+	models, err := fetchCursorModels()
+	if err != nil {
+		return fmt.Errorf("failed to fetch models from cursor-agent: %w", err)
 	}
 
 	// Add cursor-acp provider (merge with existing to preserve user config)

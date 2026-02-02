@@ -70,22 +70,19 @@ opencode run "your prompt" --model cursor-acp/sonnet-4.5
 
 ## Models
 
-Available via `cursor-agent --list-models`:
+Models are discovered dynamically from `cursor-agent --list-models`. The installer and sync script automatically populate your config.
 
-| Model | Description |
-|-------|-------------|
-| `auto` | Auto-select |
-| `sonnet-4.5` | Claude Sonnet 4.5 |
-| `opus-4.5` | Claude Opus 4.5 |
-| `opus-4.5-thinking` | Claude Opus 4.5 (thinking) |
-| `sonnet-4.5-thinking` | Claude Sonnet 4.5 (thinking) |
-| `gpt-5.2` | GPT-5.2 |
-| `gpt-5.2-high` | GPT-5.2 High |
-| `gpt-5.2-codex` | GPT-5.2 Codex |
-| `gemini-3-pro` | Gemini 3 Pro |
-| `gemini-3-flash` | Gemini 3 Flash |
-| `grok` | Grok |
-| `composer-1` | Cursor Composer |
+**Sync models manually:**
+```bash
+./scripts/sync-models.sh
+```
+
+**API endpoint** (when proxy is running):
+```bash
+curl http://127.0.0.1:32124/v1/models
+```
+
+Common models include: `auto`, `sonnet-4.5`, `opus-4.5`, `gpt-5.2`, `gemini-3-pro`, `grok`, `composer-1`
 
 ## Architecture
 

@@ -70,6 +70,45 @@ async function ensureCursorProxyServer(workspaceDirectory: string): Promise<stri
         });
       }
 
+      // Dynamic model discovery via cursor-agent --list-models
+      if (url.pathname === "/v1/models" || url.pathname === "/models") {
+        try {
+          const bunAny = globalThis as any;
+          const proc = bunAny.Bun.spawn(["cursor-agent", "--list-models"], {
+            stdout: "pipe",
+            stderr: "pipe",
+          });
+          const output = await new Response(proc.stdout).text();
+          await proc.exited;
+
+          const models: Array<{ id: string; object: string; created: number; owned_by: string }> = [];
+          const lines = stripAnsi(output).split("\n");
+          for (const line of lines) {
+            // Format: "model-id - Display Name [(current)] [(default)]"
+            const match = line.match(/^([a-z0-9.-]+)\s+-\s+(.+?)(?:\s+\((current|default)\))*\s*$/i);
+            if (match) {
+              models.push({
+                id: match[1],
+                object: "model",
+                created: Math.floor(Date.now() / 1000),
+                owned_by: "cursor",
+              });
+            }
+          }
+
+          return new Response(JSON.stringify({ object: "list", data: models }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (err) {
+          log.error("Failed to list models", { error: String(err) });
+          return new Response(JSON.stringify({ error: "Failed to fetch models from cursor-agent" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      }
+
       if (url.pathname !== "/v1/chat/completions" && url.pathname !== "/chat/completions") {
         return new Response(JSON.stringify({ error: `Unsupported path: ${url.pathname}` }), {
           status: 404,
