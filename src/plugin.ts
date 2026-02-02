@@ -1,6 +1,10 @@
 import type { Plugin, PluginInput } from "@opencode-ai/plugin";
 import type { Auth } from "@opencode-ai/sdk";
 import { startCursorOAuth } from "./auth";
+import { createLogger } from "./utils/logger";
+import { parseAgentError, formatErrorForUser, stripAnsi } from "./utils/errors";
+
+const log = createLogger("plugin");
 
 const CURSOR_PROVIDER_ID = "cursor-acp";
 const CURSOR_PROXY_HOST = "127.0.0.1";
@@ -141,8 +145,15 @@ async function ensureCursorProxyServer(workspaceDirectory: string): Promise<stri
         // cursor-agent sometimes returns non-zero even with usable stdout.
         // Treat stdout as success unless we have explicit stderr.
         if (child.exitCode !== 0 && stderr.length > 0) {
-          return new Response(JSON.stringify({ error: stderr }), {
-            status: 401,
+          const parsed = parseAgentError(stderr);
+          const userError = formatErrorForUser(parsed);
+          log.error("cursor-cli failed", { type: parsed.type, message: parsed.message });
+          return new Response(JSON.stringify({
+            error: userError,
+            type: parsed.type,
+            details: parsed.details,
+          }), {
+            status: parsed.type === "auth" ? 401 : parsed.type === "quota" ? 429 : 500,
             headers: { "Content-Type": "application/json" },
           });
         }
@@ -179,7 +190,9 @@ async function ensureCursorProxyServer(workspaceDirectory: string): Promise<stri
 
             if (child.exitCode !== 0) {
               const stderrText = await new Response(child.stderr).text();
-              const msg = `cursor-agent failed: ${(stderrText || "").trim()}`;
+              const parsed = parseAgentError(stderrText);
+              const msg = formatErrorForUser(parsed);
+              log.error("cursor-cli streaming failed", { type: parsed.type });
               const errChunk = createChatCompletionChunk(id, created, model, msg, true);
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(errChunk)}\n\n`));
               controller.enqueue(encoder.encode("data: [DONE]\n\n"));
@@ -304,8 +317,18 @@ async function ensureCursorProxyServer(workspaceDirectory: string): Promise<stri
           const stderr = Buffer.concat(stderrChunks).toString().trim();
 
           if (code !== 0 && stderr.length > 0) {
-            res.writeHead(401, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: stderr }));
+            const parsed = parseAgentError(stderr);
+            const userError = formatErrorForUser(parsed);
+            log.error("cursor-cli failed", { type: parsed.type, message: parsed.message });
+            res.writeHead(
+              parsed.type === "auth" ? 401 : parsed.type === "quota" ? 429 : 500,
+              { "Content-Type": "application/json" }
+            );
+            res.end(JSON.stringify({
+              error: userError,
+              type: parsed.type,
+              details: parsed.details,
+            }));
             return;
           }
 
@@ -445,9 +468,9 @@ async function ensureCursorProxyServer(workspaceDirectory: string): Promise<stri
  * OpenCode plugin for Cursor Agent
  */
 export const CursorPlugin: Plugin = async ({ $, directory }: PluginInput) => {
-  console.error(`[cursor-acp] Plugin initializing in directory: ${directory}`);
+  log.info("Plugin initializing", { directory });
   const proxyBaseURL = await ensureCursorProxyServer(directory);
-  console.error(`[cursor-acp] Proxy server started at: ${proxyBaseURL}`);
+  log.info("Proxy server started", { baseURL: proxyBaseURL });
 
   return {
     auth: {
@@ -461,9 +484,9 @@ export const CursorPlugin: Plugin = async ({ $, directory }: PluginInput) => {
           type: "oauth",
           async authorize() {
             try {
-              console.error("[cursor-acp] Starting OAuth flow...");
+              log.info("Starting OAuth flow");
               const { url, instructions, callback } = await startCursorOAuth();
-              console.error(`[cursor-acp] Got URL: ${url}`);
+              log.debug("Got OAuth URL", { url: url.substring(0, 50) + "..." });
               return {
                 type: "oauth",
                 url,
@@ -472,7 +495,7 @@ export const CursorPlugin: Plugin = async ({ $, directory }: PluginInput) => {
                 callback,
               };
             } catch (error) {
-              console.error(`[cursor-acp] OAuth error: ${error}`);
+              log.error("OAuth error", { error });
               throw error;
             }
           },
