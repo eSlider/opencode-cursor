@@ -37,13 +37,18 @@ Add to `~/.config/opencode/opencode.json`:
       "options": { "baseURL": "http://127.0.0.1:32124/v1" },
       "models": {
         "auto": { "name": "Auto" },
-        "sonnet-4.5": { "name": "Claude Sonnet 4.5" },
-        "gpt-5.2": { "name": "GPT-5.2" }
+        "sonnet-4.5": { "name": "Claude 4.5 Sonnet" },
+        "opus-4.5": { "name": "Claude 4.5 Opus" },
+        "gpt-5.2": { "name": "GPT-5.2" },
+        "gemini-3-pro": { "name": "Gemini 3 Pro" },
+        "grok-4": { "name": "Grok 4" }
       }
     }
   }
 }
 ```
+
+> **Note:** The TUI installer adds all available models. See `cursor-agent --list-models` for the full list.
 
 ## Authentication
 
