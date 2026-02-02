@@ -14,14 +14,16 @@ export interface ParsedError {
  * Strip ANSI escape codes from string
  */
 export function stripAnsi(str: string): string {
+  if (typeof str !== "string") return String(str ?? "");
   return str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
 }
 
 /**
  * Parse cursor-agent error output into structured format
  */
-export function parseAgentError(stderr: string): ParsedError {
-  const clean = stripAnsi(stderr).trim();
+export function parseAgentError(stderr: string | unknown): ParsedError {
+  const input = typeof stderr === "string" ? stderr : String(stderr ?? "");
+  const clean = stripAnsi(input).trim();
 
   // Quota/usage limit error
   if (clean.includes("usage limit") || clean.includes("hit your usage limit")) {
@@ -97,10 +99,11 @@ export function parseAgentError(stderr: string): ParsedError {
  * Format parsed error for user display
  */
 export function formatErrorForUser(error: ParsedError): string {
-  let output = `cursor-acp error: ${error.userMessage}`;
+  let output = `cursor-acp error: ${error.userMessage || error.message || "Unknown error"}`;
 
-  if (Object.keys(error.details).length > 0) {
-    const detailParts = Object.entries(error.details)
+  const details = error.details || {};
+  if (Object.keys(details).length > 0) {
+    const detailParts = Object.entries(details)
       .map(([k, v]) => `${k}: ${v}`)
       .join(" | ");
     output += `\n  ${detailParts}`;
