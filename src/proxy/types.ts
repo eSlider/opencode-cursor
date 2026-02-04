@@ -6,7 +6,8 @@ export interface ProxyConfig {
 }
 
 export interface ProxyServer {
-  start(): Promise<string>;  // Returns baseURL
+  start(): Promise<string>;
   stop(): Promise<void>;
   getBaseURL(): string;
+  getPort(): number | null;
 }
