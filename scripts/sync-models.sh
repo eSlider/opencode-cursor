@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sync cursor-acp models in opencode.json from cursor-agent --list-models
+# Sync cursor-acp models in opencode.json from cursor-agent models
 
 set -e
 
@@ -21,7 +21,7 @@ if ! command -v jq &>/dev/null; then
 fi
 
 echo "Fetching models from cursor-agent..."
-RAW_OUTPUT=$(cursor-agent --list-models 2>&1)
+RAW_OUTPUT=$(cursor-agent models 2>&1)
 
 # Strip ANSI codes and parse model lines
 # Format: "model-id - Display Name [(current)] [(default)]"

@@ -70,11 +70,11 @@ async function ensureCursorProxyServer(workspaceDirectory: string): Promise<stri
         });
       }
 
-      // Dynamic model discovery via cursor-agent --list-models
+      // Dynamic model discovery via cursor-agent models
       if (url.pathname === "/v1/models" || url.pathname === "/models") {
         try {
           const bunAny = globalThis as any;
-          const proc = bunAny.Bun.spawn(["cursor-agent", "--list-models"], {
+          const proc = bunAny.Bun.spawn(["cursor-agent", "models"], {
             stdout: "pipe",
             stderr: "pipe",
           });
@@ -292,11 +292,11 @@ async function ensureCursorProxyServer(workspaceDirectory: string): Promise<stri
         return;
       }
 
-      // Dynamic model discovery via cursor-agent --list-models (Node.js handler)
+      // Dynamic model discovery via cursor-agent models (Node.js handler)
       if (url.pathname === "/v1/models" || url.pathname === "/models") {
         try {
           const { execSync } = await import("child_process");
-          const output = execSync("cursor-agent --list-models", { encoding: "utf-8", timeout: 30000 });
+          const output = execSync("cursor-agent models", { encoding: "utf-8", timeout: 30000 });
           const clean = stripAnsi(output);
           const models: Array<{ id: string; object: string; created: number; owned_by: string }> = [];
           for (const line of clean.split("\n")) {
@@ -588,7 +588,7 @@ export const CursorPlugin: Plugin = async ({ $, directory }: PluginInput) => {
 
       // Always point to the actual proxy base URL (may be dynamically allocated).
       output.options = output.options || {};
-      output.options.baseURL = proxyBaseURL;
+      output.options.baseURL = proxyBaseURL || CURSOR_PROXY_DEFAULT_BASE_URL;
       output.options.apiKey = output.options.apiKey || "cursor-agent";
     },
   };

@@ -20,7 +20,7 @@ export function createCursorProvider(options: ProviderOptions = {}) {
   if (mode === 'proxy') {
     // Start proxy server
     const proxy = createProxyServer(options.proxyConfig || {});
-    let baseURL: string;
+    let baseURL: string = options.baseURL ?? proxy.getBaseURL();
 
     // Create the provider object
     const provider = {

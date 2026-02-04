@@ -6,6 +6,7 @@ bun.lock
 # Installer binaries (not source)
 cmd/installer/installer-binary
 opencode-cursor-installer
+installer
 opencode-cursor-*.log
 
 # OpenCode local config

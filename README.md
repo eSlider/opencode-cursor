@@ -35,12 +35,12 @@ Install the cursor-acp plugin for OpenCode:
    ln -sf $(pwd)/dist/index.js ~/.config/opencode/plugin/cursor-acp.js
 
 3. Get available models:
-   cursor-agent --list-models
+   cursor-agent models
 
 4. Add to ~/.config/opencode/opencode.json - merge with existing config:
    - Add "cursor-acp" to the "plugin" array
    - Add a "cursor-acp" provider with models from step 3
-   - Set npm to "@ai-sdk/openai-compatible" 
+   - Set npm to "@ai-sdk/openai-compatible"
    - Set options.baseURL to "http://127.0.0.1:32124/v1"
 
 5. Verify: opencode models | grep cursor
@@ -56,6 +56,7 @@ ln -s $(pwd)/dist/index.js ~/.config/opencode/plugin/cursor-acp.js
 The installers handle the rest automatically. If you're doing a manual install, you'll need to do the following steps yourself.
 
 Easiest way is to run the sync script, which populates everything for you:
+
 ```bash
 ./scripts/sync-models.sh
 ```
@@ -108,6 +109,7 @@ opencode auth login
 ```
 
 Then follow the prompts:
+
 1. Select **"Other"** from the provider list
 2. Enter provider id: **cursor-acp**
 3. Browser will open automatically - click "Continue with Cursor"
@@ -130,13 +132,14 @@ opencode run "your prompt" --model cursor-acp/sonnet-4.5
 
 ## Models
 
-Models are pulled from `cursor-agent --list-models` and written to your config during installation. If Cursor adds new models later, re-run:
+Models are pulled from `cursor-agent models` and written to your config during installation. If Cursor adds new models later, re-run:
 
 ```bash
 ./scripts/sync-models.sh
 ```
 
 The proxy also exposes a `/v1/models` endpoint that fetches models in real-time:
+
 ```bash
 curl http://127.0.0.1:32124/v1/models
 ```
@@ -165,21 +168,22 @@ Auth token is created once via `opencode auth login` or `cursor-agent login`. Af
 
 ## Alternatives
 
-| | cursor-acp | [yet-another-opencode-cursor-auth](https://github.com/Yukaii/yet-another-opencode-cursor-auth) | [opencode-cursor-auth](https://github.com/POSO-PocketSolutions/opencode-cursor-auth) | [cursor-opencode-auth](https://github.com/R44VC0RP/cursor-opencode-auth) |
-|---|:---:|:---:|:---:|:---:|
-| **Architecture** | HTTP proxy via cursor-agent | Direct Connect-RPC | HTTP proxy via cursor-agent | Direct Connect-RPC/protobuf |
-| **Platform** | Linux, macOS | Linux, macOS | Linux, macOS | macOS only (Keychain) |
-| **Max Prompt** | Unlimited (HTTP body) | Unknown | ~128KB (ARG_MAX) | Unknown |
-| **Streaming** | ✓ SSE | ✓ SSE | Undocumented | ✓ |
-| **Error Parsing** | ✓ (quota/auth/model) | ✗ | ✗ | Debug logging |
-| **Installer** | ✓ TUI + one-liner | ✗ | ✗ | ✗ |
-| **OAuth Flow** | ✓ OpenCode integration | ✓ Native | Browser login | Keychain |
-| **Tool Calling** | Via cursor-agent | ✓ Native | ✓ Experimental | ✗ |
-| **Stability** | Stable (uses official CLI) | Experimental | Stable | Experimental |
-| **Dependencies** | bun, cursor-agent | npm | bun, cursor-agent | Node.js 18+ |
-| **Port** | 32124 | 18741 | 32123 | 4141 |
+|                   |         cursor-acp          | [yet-another-opencode-cursor-auth](https://github.com/Yukaii/yet-another-opencode-cursor-auth) | [opencode-cursor-auth](https://github.com/POSO-PocketSolutions/opencode-cursor-auth) | [cursor-opencode-auth](https://github.com/R44VC0RP/cursor-opencode-auth) |
+| ----------------- | :-------------------------: | :--------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------: | :----------------------------------------------------------------------: |
+| **Architecture**  | HTTP proxy via cursor-agent |                                       Direct Connect-RPC                                       |                             HTTP proxy via cursor-agent                              |                       Direct Connect-RPC/protobuf                        |
+| **Platform**      |        Linux, macOS         |                                          Linux, macOS                                          |                                     Linux, macOS                                     |                          macOS only (Keychain)                           |
+| **Max Prompt**    |    Unlimited (HTTP body)    |                                            Unknown                                             |                                   ~128KB (ARG_MAX)                                   |                                 Unknown                                  |
+| **Streaming**     |            ✓ SSE            |                                             ✓ SSE                                              |                                     Undocumented                                     |                                    ✓                                     |
+| **Error Parsing** |    ✓ (quota/auth/model)     |                                               ✗                                                |                                          ✗                                           |                              Debug logging                               |
+| **Installer**     |      ✓ TUI + one-liner      |                                               ✗                                                |                                          ✗                                           |                                    ✗                                     |
+| **OAuth Flow**    |   ✓ OpenCode integration    |                                            ✓ Native                                            |                                    Browser login                                     |                                 Keychain                                 |
+| **Tool Calling**  |      Via cursor-agent       |                                            ✓ Native                                            |                                    ✓ Experimental                                    |                                    ✗                                     |
+| **Stability**     | Stable (uses official CLI)  |                                          Experimental                                          |                                        Stable                                        |                               Experimental                               |
+| **Dependencies**  |      bun, cursor-agent      |                                              npm                                               |                                  bun, cursor-agent                                   |                               Node.js 18+                                |
+| **Port**          |            32124            |                                             18741                                              |                                        32123                                         |                                   4141                                   |
 
 **Key advantages of cursor-acp:**
+
 - Avoids E2BIG errors with large prompts (uses HTTP body, not CLI args)
 - Structured error parsing with actionable suggestions
 - Cross-platform (not locked to macOS Keychain)
@@ -190,6 +194,10 @@ Auth token is created once via `opencode auth login` or `cursor-agent login`. Af
 
 - [Bun](https://bun.sh/)
 - [cursor-agent](https://cursor.com/) - `curl -fsSL https://cursor.com/install | bash`
+
+**Option A (one-line install):** If Go is installed, the script runs the TUI installer; otherwise it performs a shell-only install (Bun + cursor-agent required). For syncing models without the TUI, install [jq](https://jq.org/) or run `./scripts/sync-models.sh` after install.
+
+**Option B (TUI installer):** Go 1.21+ required to build the installer.
 
 ## Features
 

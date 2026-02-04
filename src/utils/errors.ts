@@ -82,7 +82,7 @@ export function parseAgentError(stderr: string | unknown): ParsedError {
       message: clean,
       userMessage: modelMatch ? `Model '${modelMatch[1]}' not available` : "Requested model not available",
       details,
-      suggestion: "Use cursor-acp/auto or check available models with: cursor-agent --list-models",
+      suggestion: "Use cursor-acp/auto or check available models with: cursor-agent models",
     };
   }
 

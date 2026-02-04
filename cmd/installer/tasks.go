@@ -15,15 +15,15 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// fetchCursorModels calls cursor-agent --list-models and parses the output
+// fetchCursorModels calls cursor-agent models and parses the output
 func fetchCursorModels() (map[string]interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "cursor-agent", "--list-models")
+	cmd := exec.CommandContext(ctx, "cursor-agent", "models")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, NewExecError("cursor-agent --list-models failed", string(output), err)
+		return nil, NewExecError("cursor-agent models failed", string(output), err)
 	}
 
 	// Strip ANSI escape codes
@@ -184,6 +184,11 @@ func installAcpSdk(m *model) error {
 }
 
 func createSymlink(m *model) error {
+	// Ensure plugin directory exists (e.g. ~/.config/opencode/plugin)
+	if err := os.MkdirAll(m.pluginDir, 0755); err != nil {
+		return fmt.Errorf("failed to create plugin directory: %w", err)
+	}
+
 	// Create symlink in OpenCode's plugin directory
 	symlinkPath := filepath.Join(m.pluginDir, "cursor-acp.js")
 
@@ -256,7 +261,18 @@ func updateConfig(m *model) error {
 	// Always update models list (this is what installer needs to ensure)
 	existingCursorAcp["models"] = models
 
-	// Preserve any other user fields (npm, options, baseURL, etc.)
+	// Ensure options.baseURL is set so OpenCode never builds "undefined/chat/completions"
+	const defaultBaseURL = "http://127.0.0.1:32124/v1"
+	opts, _ := existingCursorAcp["options"].(map[string]interface{})
+	if opts == nil {
+		opts = make(map[string]interface{})
+		existingCursorAcp["options"] = opts
+	}
+	if _, hasBaseURL := opts["baseURL"]; !hasBaseURL {
+		opts["baseURL"] = defaultBaseURL
+	}
+
+	// Preserve any other user fields (npm, etc.)
 	providers["cursor-acp"] = existingCursorAcp
 
 	// Ensure plugin array exists and add cursor-acp
